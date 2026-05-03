@@ -2,6 +2,7 @@ import os
 import face_recognition
 import cv2
 import numpy as np
+from datetime import datetime
 
 known_face_encodings = []
 known_face_names = []
@@ -10,6 +11,12 @@ print("Check faces loading...")
 print("Press q for exit")
 if not os.path.exists("Known_faces"):
     os.makedirs("Known_faces")
+def log_attendance(name):
+    with open("attendance.csv", "a",encoding="utf-8") as f:
+        now = datetime.now()
+        dt_string = now.strftime("%H:%M:%S")
+        f.writelines(f"{name},{dt_string}\n")
+
 for file in os.listdir("Known_faces"):
     if file.lower().endswith((".jpg", ".jpeg", ".png")):
         image = face_recognition.load_image_file(f"Known_faces/{file}")
@@ -19,14 +26,15 @@ for file in os.listdir("Known_faces"):
             continue
         encoding = face_encodings[0]
         known_face_encodings.append(encoding)
-
         file_name = os.path.splitext(file)[0]
+
         if "_" in file_name:
             person_name, student_id = file_name.rsplit("_", 1)
             display_name = f"{person_name} ID-{student_id}"
         else:
             display_name = file_name
         known_face_names.append(display_name)
+
 video_capture = cv2.VideoCapture(0)
 while True:
     ret, frame = video_capture.read()
@@ -45,10 +53,12 @@ while True:
             name = known_face_names[first_match_index]
             if name not in attendance:
                 attendance.append(name)
+                log_attendance(name)
                 print(f"Checked in: {name}")
         top, right, bottom, left = top * 4, right * 4, bottom * 4, left * 4
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
         cv2.putText(frame, name, (left, bottom - 10), cv2.FONT_HERSHEY_TRIPLEX, 0.7, (255, 255, 255), 2)
+   
     cv2.imshow("Attendance system", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         print("Exit")
